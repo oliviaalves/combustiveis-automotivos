@@ -72,7 +72,7 @@ def _ler_csv(origem: Path | str | bytes | io.BytesIO, is_zip: bool = False, **kw
     # Identifica colunas no header e aplica Utf8 a todas as colunas de texto/endereço/cadastro
     header_line = texto.split("\n", 1)[0] if texto else ""
     sep = csv_kwargs.get("separator", ";")
-    header_cols = [c.strip().strip('"').strip("'") for c in header_line.split(sep)]
+    header_cols = [c.strip().strip('"').strip("'") for c in header_line.split(sep)] # ty: ignore[ no-matching-overload]
     schema_overrides = {
         col: pl.Utf8
         for col in header_cols
@@ -84,9 +84,9 @@ def _ler_csv(origem: Path | str | bytes | io.BytesIO, is_zip: bool = False, **kw
     
     # Mescla com schema_overrides passados via kwargs se houver
     if "schema_overrides" in csv_kwargs:
-        schema_overrides.update(csv_kwargs.pop("schema_overrides"))
+        schema_overrides.update(csv_kwargs.pop("schema_overrides"))  # ty: ignore[no-matching-overload]
 
-    df = pl.read_csv(buffer, schema_overrides=schema_overrides, **csv_kwargs)
+    df = pl.read_csv(buffer, schema_overrides=schema_overrides, **csv_kwargs)  # ty: ignore[invalid-argument-type]
     return df
 
 
@@ -120,6 +120,6 @@ def parse_data() -> None:
             shutil.move(str(file), str(destino))
             logger.info(f"Gravado no Delta e movido: {file.name} -> {destino.name}")
 
-        except Exception as e:
+        except Exception:
             logger.exception(f"Erro ao processar o arquivo {file.name}")
-            raise e
+            raise 

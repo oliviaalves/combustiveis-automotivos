@@ -17,9 +17,9 @@ def ca_uf_mes_gold(anos: list[int] | None = None) -> None:
     """
     try:
         dataframe = pl.read_delta(str(SILVER_TARGET))
-    except Exception as e:
+    except Exception:
         logger.exception("Erro ao ler o arquivo Delta da camada Silver")
-        raise e
+        raise 
 
     if anos is not None:
         dataframe = dataframe.filter(pl.col("Ano_de_coleta").is_in(anos))
