@@ -134,10 +134,15 @@ def load_uf_gold_data() -> pd.DataFrame:
         pdf["Ano_de_coleta"] = pdf["Ano_de_coleta"].astype(int)
         pdf["Mes_de_coleta"] = pdf["Mes_de_coleta"].astype(int)
         pdf["Data_Ref"] = pd.to_datetime(
-            pdf["Ano_de_coleta"].astype(str) + "-" + pdf["Mes_de_coleta"].astype(str) + "-01"
+            pdf["Ano_de_coleta"].astype(str)
+            + "-"
+            + pdf["Mes_de_coleta"].astype(str)
+            + "-01"
         )
-        return pdf.sort_values(["Ano_de_coleta", "Mes_de_coleta", "Estado_Sigla", "Produto"])
-    except Exception as e:
+        return pdf.sort_values(
+            ["Ano_de_coleta", "Mes_de_coleta", "Estado_Sigla", "Produto"]
+        )
+    except Exception as e:  # noqa: BLE001
         st.error(f"Erro ao carregar tabela Gold UF/Mês: {e}")
         return pd.DataFrame()
 
@@ -154,7 +159,7 @@ def load_mcp_gold_data() -> pd.DataFrame:
         pdf["Ano_de_coleta"] = pdf["Ano_de_coleta"].astype(int)
         pdf["Mes_de_coleta"] = pdf["Mes_de_coleta"].astype(int)
         return pdf
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         st.error(f"Erro ao carregar tabela Gold Município/Mês: {e}")
         return pd.DataFrame()
 
@@ -175,7 +180,9 @@ def format_percent(val: float | None) -> str:
 df_uf = load_uf_gold_data()
 
 if df_uf.empty:
-    st.error("Não foram encontrados dados na camada Gold. Por favor, execute o pipeline ETL.")
+    st.error(
+        "Não foram encontrados dados na camada Gold. Por favor, execute o pipeline ETL."
+    )
     st.stop()
 
 # --- Sidebar / Filtros ---
@@ -187,7 +194,7 @@ with st.sidebar:
     # Filtro de Anos
     min_ano = int(df_uf["Ano_de_coleta"].min())
     max_ano = int(df_uf["Ano_de_coleta"].max())
-    
+
     anos_sel = st.slider(
         "📅 Período de Coleta (Anos)",
         min_value=min_ano,
@@ -198,7 +205,11 @@ with st.sidebar:
 
     # Filtro de Combustíveis
     todos_produtos = sorted(df_uf["Produto"].dropna().unique().tolist())
-    produtos_default = [p for p in ["GASOLINA", "ETANOL", "DIESEL", "GNV", "GASOLINA ADITIVADA"] if p in todos_produtos]
+    produtos_default = [
+        p
+        for p in ["GASOLINA", "ETANOL", "DIESEL", "GNV", "GASOLINA ADITIVADA"]
+        if p in todos_produtos
+    ]
     if not produtos_default:
         produtos_default = todos_produtos[:3]
 
@@ -210,8 +221,10 @@ with st.sidebar:
 
     # Filtro de Estados
     todos_estados = sorted(df_uf["Estado_Sigla"].dropna().unique().tolist())
-    selecionar_todos_estados = st.checkbox("Selecionar todos os Estados (BR)", value=True)
-    
+    selecionar_todos_estados = st.checkbox(
+        "Selecionar todos os Estados (BR)", value=True
+    )
+
     if selecionar_todos_estados:
         estados_sel = todos_estados
     else:
@@ -251,17 +264,21 @@ st.markdown(
 )
 
 if filtered_df.empty:
-    st.warning("Nenhum dado encontrado para a combinação de filtros selecionada. Ajuste os filtros na barra lateral.")
+    st.warning(
+        "Nenhum dado encontrado para a combinação de filtros selecionada. Ajuste os filtros na barra lateral."
+    )
     st.stop()
 
 # --- Abas Principais ---
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
-    "📈 Margem Ano a Ano (YoY)",
-    "⚖️ Análise Comparativa",
-    "📊 Visão Geral & KPIs",
-    "🗺️ Ranking Regional & Municípios",
-    "📋 Dados Detalhados",
-])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(
+    [
+        "📈 Margem Ano a Ano (YoY)",
+        "⚖️ Análise Comparativa",
+        "📊 Visão Geral & KPIs",
+        "🗺️ Ranking Regional & Municípios",
+        "📋 Dados Detalhados",
+    ]
+)
 
 
 # ==============================================================================
@@ -269,7 +286,9 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
 # ==============================================================================
 with tab1:
     st.markdown("### 📊 Evolução da Margem de Lucro Bruta Ano a Ano (YoY)")
-    st.markdown("Análise histórica do spread de revenda (Valor de Venda ajustado - Valor de Compra ajustado por litro).")
+    st.markdown(
+        "Análise histórica do spread de revenda (Valor de Venda ajustado - Valor de Compra ajustado por litro)."
+    )
 
     # Alerta informativo sobre a regulamentação da ANP
     st.info(
@@ -292,9 +311,15 @@ with tab1:
     )
 
     # Cálculo da Taxa de Crescimento YoY da Margem
-    df_anual["Margem_YoY_%"] = df_anual.groupby("Produto")["Margem_media"].pct_change() * 100
-    df_anual["Venda_YoY_%"] = df_anual.groupby("Produto")["Valor_de_Venda_medio"].pct_change() * 100
-    df_anual["Margem_Percentual"] = (df_anual["Margem_media"] / df_anual["Valor_de_Venda_medio"]) * 100
+    df_anual["Margem_YoY_%"] = (
+        df_anual.groupby("Produto")["Margem_media"].pct_change() * 100
+    )
+    df_anual["Venda_YoY_%"] = (
+        df_anual.groupby("Produto")["Valor_de_Venda_medio"].pct_change() * 100
+    )
+    df_anual["Margem_Percentual"] = (
+        df_anual["Margem_media"] / df_anual["Valor_de_Venda_medio"]
+    ) * 100
 
     col_chart1, col_chart2 = st.columns([3, 2])
 
@@ -307,14 +332,24 @@ with tab1:
             color="Produto",
             markers=True,
             title="<b>Margem de Revenda Média por Ano (R$/litro ajustado pelo IPCA)</b>",
-            labels={"Ano_de_coleta": "Ano", "Margem_media": "Margem Média (R$/L)", "Produto": "Combustível"},
+            labels={
+                "Ano_de_coleta": "Ano",
+                "Margem_media": "Margem Média (R$/L)",
+                "Produto": "Combustível",
+            },
             template="plotly_dark",
         )
-        fig_margin_yoy.update_traces(line=dict(width=3), marker=dict(size=7))
+        fig_margin_yoy.update_traces(line={"width": 3}, marker={"size": 7})
         fig_margin_yoy.update_layout(
             hovermode="x unified",
-            margin=dict(l=20, r=20, t=50, b=20),
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            margin={"l": 20, "r": 20, "t": 50, "b": 20},
+            legend={
+                "orientation": "h",
+                "yanchor": "bottom",
+                "y": 1.02,
+                "xanchor": "right",
+                "x": 1,
+            },
         )
         st.plotly_chart(fig_margin_yoy, use_container_width=True)
 
@@ -327,13 +362,23 @@ with tab1:
             color="Produto",
             barmode="group",
             title="<b>Margem Bruta Percentual (% do Preço de Venda)</b>",
-            labels={"Ano_de_coleta": "Ano", "Margem_Percentual": "Margem (%)", "Produto": "Combustível"},
+            labels={
+                "Ano_de_coleta": "Ano",
+                "Margem_Percentual": "Margem (%)",
+                "Produto": "Combustível",
+            },
             template="plotly_dark",
         )
         fig_margin_pct.update_layout(
             hovermode="x unified",
-            margin=dict(l=20, r=20, t=50, b=20),
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            margin={"l": 20, "r": 20, "t": 50, "b": 20},
+            legend={
+                "orientation": "h",
+                "yanchor": "bottom",
+                "y": 1.02,
+                "xanchor": "right",
+                "x": 1,
+            },
         )
         st.plotly_chart(fig_margin_pct, use_container_width=True)
 
@@ -348,41 +393,63 @@ with tab1:
         color="Produto",
         barmode="group",
         title="<b>Variação Anual da Margem de Lucro (% YoY)</b>",
-        labels={"Ano_de_coleta": "Ano", "Margem_YoY_%": "Crescimento da Margem (%)", "Produto": "Combustível"},
+        labels={
+            "Ano_de_coleta": "Ano",
+            "Margem_YoY_%": "Crescimento da Margem (%)",
+            "Produto": "Combustível",
+        },
         template="plotly_dark",
     )
     fig_yoy_growth.add_hline(y=0, line_dash="dash", line_color="rgba(255,255,255,0.4)")
     fig_yoy_growth.update_layout(
         hovermode="x unified",
-        margin=dict(l=20, r=20, t=50, b=20),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        margin={"l": 20, "r": 20, "t": 50, "b": 20},
+        legend={
+            "orientation": "h",
+            "yanchor": "bottom",
+            "y": 1.02,
+            "xanchor": "right",
+            "x": 1,
+        },
     )
     st.plotly_chart(fig_yoy_growth, use_container_width=True)
 
     # Tabela Resumo YoY
     st.markdown("#### 📋 Tabela Analítica de Evolução Anual")
     tabela_yoy = df_anual.copy()
-    tabela_yoy_display = tabela_yoy.rename(columns={
-        "Ano_de_coleta": "Ano",
-        "Produto": "Produto",
-        "Valor_de_Venda_medio": "Venda Média (R$/L)",
-        "Valor_de_Compra_medio": "Compra Média (R$/L)",
-        "Margem_media": "Margem Média (R$/L)",
-        "Margem_Percentual": "Margem (%)",
-        "Margem_YoY_%": "Variação Margem YoY (%)",
-    })
-    
+    tabela_yoy_display = tabela_yoy.rename(
+        columns={
+            "Ano_de_coleta": "Ano",
+            "Produto": "Produto",
+            "Valor_de_Venda_medio": "Venda Média (R$/L)",
+            "Valor_de_Compra_medio": "Compra Média (R$/L)",
+            "Margem_media": "Margem Média (R$/L)",
+            "Margem_Percentual": "Margem (%)",
+            "Margem_YoY_%": "Variação Margem YoY (%)",
+        }
+    )
+
     st.dataframe(
-        tabela_yoy_display[[
-            "Ano", "Produto", "Venda Média (R$/L)", "Compra Média (R$/L)", 
-            "Margem Média (R$/L)", "Margem (%)", "Variação Margem YoY (%)"
-        ]].style.format({
-            "Venda Média (R$/L)": "R$ {:.2f}",
-            "Compra Média (R$/L)": "R$ {:.2f}",
-            "Margem Média (R$/L)": "R$ {:.2f}",
-            "Margem (%)": "{:.2f}%",
-            "Variação Margem YoY (%)": "{:+.2f}%",
-        }, na_rep="-"),
+        tabela_yoy_display[
+            [
+                "Ano",
+                "Produto",
+                "Venda Média (R$/L)",
+                "Compra Média (R$/L)",
+                "Margem Média (R$/L)",
+                "Margem (%)",
+                "Variação Margem YoY (%)",
+            ]
+        ].style.format(
+            {
+                "Venda Média (R$/L)": "R$ {:.2f}",
+                "Compra Média (R$/L)": "R$ {:.2f}",
+                "Margem Média (R$/L)": "R$ {:.2f}",
+                "Margem (%)": "{:.2f}%",
+                "Variação Margem YoY (%)": "{:+.2f}%",
+            },
+            na_rep="-",
+        ),
         use_container_width=True,
     )
 
@@ -392,16 +459,18 @@ with tab1:
 # ==============================================================================
 with tab2:
     st.markdown("### ⚖️ Comparativos Dinâmicos")
-    
-    comp_subtab1, comp_subtab2, comp_subtab3 = st.tabs([
-        "⛽ Comparativo entre Combustíveis & Paridade",
-        "📍 Comparativo entre Estados (UFs)",
-        "📅 Comparativo Entre Dois Anos Específicos",
-    ])
+
+    comp_subtab1, comp_subtab2, comp_subtab3 = st.tabs(
+        [
+            "⛽ Comparativo entre Combustíveis & Paridade",
+            "📍 Comparativo entre Estados (UFs)",
+            "📅 Comparativo Entre Dois Anos Específicos",
+        ]
+    )
 
     with comp_subtab1:
         st.markdown("#### Comparação Direta de Margem & Preço entre Combustíveis")
-        
+
         # Gráfico de dispersão / bolhas: Preço de Compra vs Preço de Venda com tamanho = Margem
         df_comp_prod = (
             filtered_df.dropna(subset=["Margem_media"])
@@ -412,7 +481,7 @@ with tab2:
                 Margem_media=("Margem_media", "mean"),
             )
         )
-        
+
         fig_scatter = px.scatter(
             df_comp_prod,
             x="Valor_de_Compra_medio",
@@ -431,26 +500,58 @@ with tab2:
         st.plotly_chart(fig_scatter, use_container_width=True)
 
         # Análise Especial: Paridade Etanol vs Gasolina (Regra dos 70%)
-        if "GASOLINA" in filtered_df["Produto"].values and "ETANOL" in filtered_df["Produto"].values:
+        if (
+            "GASOLINA" in filtered_df["Produto"].values
+            and "ETANOL" in filtered_df["Produto"].values
+        ):
             st.markdown("#### ⚡ Paridade de Preços: Etanol vs Gasolina (Relação 70%)")
-            st.info("Pela regra clássica de eficiência energética veicular, o etanol é economicamente vantajoso quando seu preço representa até 70% do preço da gasolina.")
+            st.info(
+                "Pela regra clássica de eficiência energética veicular, o etanol é economicamente vantajoso quando seu preço representa até 70% do preço da gasolina."
+            )
 
-            df_gas = filtered_df[filtered_df["Produto"] == "GASOLINA"].groupby(["Ano_de_coleta", "Mes_de_coleta"], as_index=False)["Valor_de_Venda_medio"].mean()
-            df_eta = filtered_df[filtered_df["Produto"] == "ETANOL"].groupby(["Ano_de_coleta", "Mes_de_coleta"], as_index=False)["Valor_de_Venda_medio"].mean()
-            
-            df_paridade = pd.merge(df_gas, df_eta, on=["Ano_de_coleta", "Mes_de_coleta"], suffixes=("_Gasolina", "_Etanol"))
-            df_paridade["Razao_Etanol_Gasolina"] = (df_paridade["Valor_de_Venda_medio_Etanol"] / df_paridade["Valor_de_Venda_medio_Gasolina"]) * 100
-            df_paridade["Data_Ref"] = pd.to_datetime(df_paridade["Ano_de_coleta"].astype(str) + "-" + df_paridade["Mes_de_coleta"].astype(str) + "-01")
+            df_gas = (
+                filtered_df[filtered_df["Produto"] == "GASOLINA"]
+                .groupby(["Ano_de_coleta", "Mes_de_coleta"], as_index=False)[
+                    "Valor_de_Venda_medio"
+                ]
+                .mean()
+            )
+            df_eta = (
+                filtered_df[filtered_df["Produto"] == "ETANOL"]
+                .groupby(["Ano_de_coleta", "Mes_de_coleta"], as_index=False)[
+                    "Valor_de_Venda_medio"
+                ]
+                .mean()
+            )
+
+            df_paridade = pd.merge(
+                df_gas,
+                df_eta,
+                on=["Ano_de_coleta", "Mes_de_coleta"],
+                suffixes=("_Gasolina", "_Etanol"),
+            )
+            df_paridade["Razao_Etanol_Gasolina"] = (
+                df_paridade["Valor_de_Venda_medio_Etanol"]
+                / df_paridade["Valor_de_Venda_medio_Gasolina"]
+            ) * 100
+            df_paridade["Data_Ref"] = pd.to_datetime(
+                df_paridade["Ano_de_coleta"].astype(str)
+                + "-"
+                + df_paridade["Mes_de_coleta"].astype(str)
+                + "-01"
+            )
             df_paridade = df_paridade.sort_values("Data_Ref")
 
             fig_paridade = go.Figure()
-            fig_paridade.add_trace(go.Scatter(
-                x=df_paridade["Data_Ref"],
-                y=df_paridade["Razao_Etanol_Gasolina"],
-                mode="lines",
-                name="Razão Etanol / Gasolina (%)",
-                line=dict(color="#10b981", width=2.5),
-            ))
+            fig_paridade.add_trace(
+                go.Scatter(
+                    x=df_paridade["Data_Ref"],
+                    y=df_paridade["Razao_Etanol_Gasolina"],
+                    mode="lines",
+                    name="Razão Etanol / Gasolina (%)",
+                    line={"color": "#10b981", "width": 2.5},
+                )
+            )
             fig_paridade.add_hline(
                 y=70.0,
                 line_dash="dash",
@@ -463,23 +564,25 @@ with tab2:
                 xaxis_title="Período",
                 yaxis_title="Relação Preço (%)",
                 template="plotly_dark",
-                margin=dict(l=20, r=20, t=50, b=20),
+                margin={"l": 20, "r": 20, "t": 50, "b": 20},
             )
             st.plotly_chart(fig_paridade, use_container_width=True)
 
     with comp_subtab2:
         st.markdown("#### Comparativo de Margens entre Estados (UFs)")
-        
+
         estados_comp_sel = st.multiselect(
             "Selecione Estados para Comparar:",
             options=todos_estados,
-            default=["SP", "RJ", "MG", "PR", "BA"] if set(["SP", "RJ", "MG", "PR", "BA"]).issubset(todos_estados) else todos_estados[:4],
+            default=["SP", "RJ", "MG", "PR", "BA"]
+            if {"SP", "RJ", "MG", "PR", "BA"}.issubset(todos_estados)
+            else todos_estados[:4],
             key="comp_ufs",
         )
         prod_comp_uf = st.selectbox(
             "Combustível para o Comparativo de Estados:",
             options=produtos_sel,
-            index=0 if produtos_sel else 0,
+            index=0,
             key="comp_uf_prod",
         )
 
@@ -491,7 +594,9 @@ with tab2:
                     & (df_uf["Ano_de_coleta"] >= anos_sel[0])
                     & (df_uf["Ano_de_coleta"] <= anos_sel[1])
                 ]
-                .groupby(["Ano_de_coleta", "Estado_Sigla"], as_index=False)["Margem_media"]
+                .groupby(["Ano_de_coleta", "Estado_Sigla"], as_index=False)[
+                    "Margem_media"
+                ]
                 .mean()
             )
 
@@ -502,21 +607,35 @@ with tab2:
                 color="Estado_Sigla",
                 markers=True,
                 title=f"<b>Margem Média de {prod_comp_uf} por Estado ao Longo dos Anos (R$/L)</b>",
-                labels={"Ano_de_coleta": "Ano", "Margem_media": "Margem Média (R$/L)", "Estado_Sigla": "UF"},
+                labels={
+                    "Ano_de_coleta": "Ano",
+                    "Margem_media": "Margem Média (R$/L)",
+                    "Estado_Sigla": "UF",
+                },
                 template="plotly_dark",
             )
-            fig_comp_uf.update_traces(line=dict(width=2.5))
-            fig_comp_uf.update_layout(hovermode="x unified", margin=dict(l=20, r=20, t=50, b=20))
+            fig_comp_uf.update_traces(line={"width": 2.5})
+            fig_comp_uf.update_layout(
+                hovermode="x unified", margin={"l": 20, "r": 20, "t": 50, "b": 20}
+            )
             st.plotly_chart(fig_comp_uf, use_container_width=True)
 
     with comp_subtab3:
         st.markdown("#### Comparativo Detalhado entre Dois Anos Selecionados")
-        
+
         col_ano_a, col_ano_b = st.columns(2)
         with col_ano_a:
-            ano_base = st.selectbox("Ano Base (A):", options=sorted(df_uf["Ano_de_coleta"].unique(), reverse=True), index=min(5, len(df_uf["Ano_de_coleta"].unique())-1))
+            ano_base = st.selectbox(
+                "Ano Base (A):",
+                options=sorted(df_uf["Ano_de_coleta"].unique(), reverse=True),
+                index=min(5, len(df_uf["Ano_de_coleta"].unique()) - 1),
+            )
         with col_ano_b:
-            ano_comp = st.selectbox("Ano de Comparação (B):", options=sorted(df_uf["Ano_de_coleta"].unique(), reverse=True), index=0)
+            ano_comp = st.selectbox(
+                "Ano de Comparação (B):",
+                options=sorted(df_uf["Ano_de_coleta"].unique(), reverse=True),
+                index=0,
+            )
 
         df_ano_a = (
             df_uf[df_uf["Ano_de_coleta"] == ano_base]
@@ -539,50 +658,61 @@ with tab2:
 
         df_diff = pd.merge(df_ano_a, df_ano_b, on="Produto", how="inner")
         df_diff["Delta_Margem_R$"] = df_diff["Margem_B"] - df_diff["Margem_A"]
-        df_diff["Delta_Margem_%"] = ((df_diff["Margem_B"] - df_diff["Margem_A"]) / df_diff["Margem_A"]) * 100
+        df_diff["Delta_Margem_%"] = (
+            (df_diff["Margem_B"] - df_diff["Margem_A"]) / df_diff["Margem_A"]
+        ) * 100
         df_diff["Delta_Venda_R$"] = df_diff["Venda_B"] - df_diff["Venda_A"]
 
         # Gráfico comparativo de barras lado a lado
         fig_diff_bar = go.Figure()
-        fig_diff_bar.add_trace(go.Bar(
-            name=f"Ano {ano_base}",
-            x=df_diff["Produto"],
-            y=df_diff["Margem_A"],
-            marker_color="#64748b",
-        ))
-        fig_diff_bar.add_trace(go.Bar(
-            name=f"Ano {ano_comp}",
-            x=df_diff["Produto"],
-            y=df_diff["Margem_B"],
-            marker_color="#3b82f6",
-        ))
+        fig_diff_bar.add_trace(
+            go.Bar(
+                name=f"Ano {ano_base}",
+                x=df_diff["Produto"],
+                y=df_diff["Margem_A"],
+                marker_color="#64748b",
+            )
+        )
+        fig_diff_bar.add_trace(
+            go.Bar(
+                name=f"Ano {ano_comp}",
+                x=df_diff["Produto"],
+                y=df_diff["Margem_B"],
+                marker_color="#3b82f6",
+            )
+        )
         fig_diff_bar.update_layout(
             barmode="group",
             title=f"<b>Comparativo de Margem de Lucro: {ano_base} vs {ano_comp} (R$/L)</b>",
             xaxis_title="Produto",
             yaxis_title="Margem Média (R$/L)",
             template="plotly_dark",
-            margin=dict(l=20, r=20, t=50, b=20),
+            margin={"l": 20, "r": 20, "t": 50, "b": 20},
         )
         st.plotly_chart(fig_diff_bar, use_container_width=True)
 
         st.dataframe(
-            df_diff.rename(columns={
-                "Produto": "Produto",
-                "Margem_A": f"Margem {ano_base} (R$/L)",
-                "Margem_B": f"Margem {ano_comp} (R$/L)",
-                "Delta_Margem_R$": "Variação Absoluta (R$/L)",
-                "Delta_Margem_%": "Variação Percentual (%)",
-                "Venda_A": f"Venda {ano_base} (R$/L)",
-                "Venda_B": f"Venda {ano_comp} (R$/L)",
-            }).style.format({
-                f"Margem {ano_base} (R$/L)": "R$ {:.2f}",
-                f"Margem {ano_comp} (R$/L)": "R$ {:.2f}",
-                "Variação Absoluta (R$/L)": "R$ {:+.2f}",
-                "Variação Percentual (%)": "{:+.2f}%",
-                f"Venda {ano_base} (R$/L)": "R$ {:.2f}",
-                f"Venda {ano_comp} (R$/L)": "R$ {:.2f}",
-            }, na_rep="-"),
+            df_diff.rename(
+                columns={
+                    "Produto": "Produto",
+                    "Margem_A": f"Margem {ano_base} (R$/L)",
+                    "Margem_B": f"Margem {ano_comp} (R$/L)",
+                    "Delta_Margem_R$": "Variação Absoluta (R$/L)",
+                    "Delta_Margem_%": "Variação Percentual (%)",
+                    "Venda_A": f"Venda {ano_base} (R$/L)",
+                    "Venda_B": f"Venda {ano_comp} (R$/L)",
+                }
+            ).style.format(
+                {
+                    f"Margem {ano_base} (R$/L)": "R$ {:.2f}",
+                    f"Margem {ano_comp} (R$/L)": "R$ {:.2f}",
+                    "Variação Absoluta (R$/L)": "R$ {:+.2f}",
+                    "Variação Percentual (%)": "{:+.2f}%",
+                    f"Venda {ano_base} (R$/L)": "R$ {:.2f}",
+                    f"Venda {ano_comp} (R$/L)": "R$ {:.2f}",
+                },
+                na_rep="-",
+            ),
             use_container_width=True,
         )
 
@@ -594,9 +724,21 @@ with tab3:
     st.markdown("### 📊 Visão Geral Consolidada")
 
     venda_media_geral = filtered_df["Valor_de_Venda_medio"].mean()
-    compra_media_geral = filtered_df["Valor_de_Compra_medio"].dropna().mean() if not filtered_df["Valor_de_Compra_medio"].dropna().empty else None
-    margem_media_geral = filtered_df["Margem_media"].dropna().mean() if not filtered_df["Margem_media"].dropna().empty else None
-    margem_pct_geral = (margem_media_geral / venda_media_geral * 100) if (margem_media_geral and venda_media_geral) else None
+    compra_media_geral = (
+        filtered_df["Valor_de_Compra_medio"].dropna().mean()
+        if not filtered_df["Valor_de_Compra_medio"].dropna().empty
+        else None
+    )
+    margem_media_geral = (
+        filtered_df["Margem_media"].dropna().mean()
+        if not filtered_df["Margem_media"].dropna().empty
+        else None
+    )
+    margem_pct_geral = (
+        (margem_media_geral / venda_media_geral * 100)
+        if (margem_media_geral and venda_media_geral)
+        else None
+    )
 
     # Cards de KPIs
     kpi1, kpi2, kpi3, kpi4 = st.columns(4)
@@ -663,34 +805,46 @@ with tab3:
     )
 
     fig_decomp = go.Figure()
-    fig_decomp.add_trace(go.Scatter(
-        x=df_tempo["Data_Ref"],
-        y=df_tempo["Valor_de_Venda_medio"],
-        mode="lines",
-        name="Preço de Venda (Bomba)",
-        line=dict(color="#38bdf8", width=2),
-    ))
-    fig_decomp.add_trace(go.Scatter(
-        x=df_tempo["Data_Ref"],
-        y=df_tempo["Valor_de_Compra_medio"],
-        mode="lines",
-        name="Preço de Compra (Distribuidora)",
-        line=dict(color="#fbbf24", width=2),
-    ))
-    fig_decomp.add_trace(go.Bar(
-        x=df_tempo["Data_Ref"],
-        y=df_tempo["Margem_media"],
-        name="Margem Bruta (Spread)",
-        marker_color="rgba(16, 185, 129, 0.4)",
-    ))
+    fig_decomp.add_trace(
+        go.Scatter(
+            x=df_tempo["Data_Ref"],
+            y=df_tempo["Valor_de_Venda_medio"],
+            mode="lines",
+            name="Preço de Venda (Bomba)",
+            line={"color": "#38bdf8", "width": 2},
+        )
+    )
+    fig_decomp.add_trace(
+        go.Scatter(
+            x=df_tempo["Data_Ref"],
+            y=df_tempo["Valor_de_Compra_medio"],
+            mode="lines",
+            name="Preço de Compra (Distribuidora)",
+            line={"color": "#fbbf24", "width": 2},
+        )
+    )
+    fig_decomp.add_trace(
+        go.Bar(
+            x=df_tempo["Data_Ref"],
+            y=df_tempo["Margem_media"],
+            name="Margem Bruta (Spread)",
+            marker_color="rgba(16, 185, 129, 0.4)",
+        )
+    )
     fig_decomp.update_layout(
         title="<b>Composição Histórica Mensal: Preço de Venda, Custo de Compra e Margem</b>",
         xaxis_title="Data",
         yaxis_title="Preço (R$/Litro ajustado)",
         hovermode="x unified",
         template="plotly_dark",
-        margin=dict(l=20, r=20, t=50, b=20),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        margin={"l": 20, "r": 20, "t": 50, "b": 20},
+        legend={
+            "orientation": "h",
+            "yanchor": "bottom",
+            "y": 1.02,
+            "xanchor": "right",
+            "x": 1,
+        },
     )
     st.plotly_chart(fig_decomp, use_container_width=True)
 
@@ -723,13 +877,15 @@ with tab4:
             color_continuous_scale="Viridis",
             template="plotly_dark",
         )
-        fig_rank_uf.update_layout(margin=dict(l=20, r=20, t=50, b=20), height=550)
+        fig_rank_uf.update_layout(
+            margin={"l": 20, "r": 20, "t": 50, "b": 20}, height=550
+        )
         st.plotly_chart(fig_rank_uf, use_container_width=True)
 
     with col_rank_mcp:
         st.markdown("#### 🏙️ Detalhamento por Município")
         st.markdown("Explore municípios com maiores e menores margens de lucro.")
-        
+
         df_mcp = load_mcp_gold_data()
         if not df_mcp.empty:
             df_mcp_filt = df_mcp[
@@ -752,21 +908,27 @@ with tab4:
 
                 st.markdown("**Top 10 Municípios com Maior Margem Média:**")
                 st.dataframe(
-                    df_mcp_top.head(10).style.format({
-                        "Margem_media": "R$ {:.2f}",
-                        "Valor_de_Venda_medio": "R$ {:.2f}",
-                        "Valor_de_Compra_medio": "R$ {:.2f}",
-                    }),
+                    df_mcp_top.head(10).style.format(
+                        {
+                            "Margem_media": "R$ {:.2f}",
+                            "Valor_de_Venda_medio": "R$ {:.2f}",
+                            "Valor_de_Compra_medio": "R$ {:.2f}",
+                        }
+                    ),
                     use_container_width=True,
                 )
 
                 st.markdown("**Top 10 Municípios com Menor Margem Média:**")
                 st.dataframe(
-                    df_mcp_top.tail(10).sort_values("Margem_media").style.format({
-                        "Margem_media": "R$ {:.2f}",
-                        "Valor_de_Venda_medio": "R$ {:.2f}",
-                        "Valor_de_Compra_medio": "R$ {:.2f}",
-                    }),
+                    df_mcp_top.tail(10)
+                    .sort_values("Margem_media")
+                    .style.format(
+                        {
+                            "Margem_media": "R$ {:.2f}",
+                            "Valor_de_Venda_medio": "R$ {:.2f}",
+                            "Valor_de_Compra_medio": "R$ {:.2f}",
+                        }
+                    ),
                     use_container_width=True,
                 )
 
@@ -776,30 +938,47 @@ with tab4:
 # ==============================================================================
 with tab5:
     st.markdown("### 📋 Base de Dados Filtrada")
-    st.markdown("Visualize os registros agregados da camada Gold e realize o download em CSV.")
+    st.markdown(
+        "Visualize os registros agregados da camada Gold e realize o download em CSV."
+    )
 
     st.dataframe(
-        filtered_df[[
-            "Ano_de_coleta", "Mes_de_coleta", "Estado_Sigla", "Produto",
-            "Valor_de_Venda_medio", "Valor_de_Compra_medio", "Margem_media",
-            "Valor_de_Venda_min", "Valor_de_Venda_max"
-        ]].rename(columns={
-            "Ano_de_coleta": "Ano",
-            "Mes_de_coleta": "Mês",
-            "Estado_Sigla": "UF",
-            "Produto": "Produto",
-            "Valor_de_Venda_medio": "Venda Média (R$)",
-            "Valor_de_Compra_medio": "Compra Média (R$)",
-            "Margem_media": "Margem Média (R$)",
-            "Valor_de_Venda_min": "Venda Mínima (R$)",
-            "Valor_de_Venda_max": "Venda Máxima (R$)",
-        }).style.format({
-            "Venda Média (R$)": "R$ {:.2f}",
-            "Compra Média (R$)": "R$ {:.2f}",
-            "Margem Média (R$)": "R$ {:.2f}",
-            "Venda Mínima (R$)": "R$ {:.2f}",
-            "Venda Máxima (R$)": "R$ {:.2f}",
-        }, na_rep="-"),
+        filtered_df[
+            [
+                "Ano_de_coleta",
+                "Mes_de_coleta",
+                "Estado_Sigla",
+                "Produto",
+                "Valor_de_Venda_medio",
+                "Valor_de_Compra_medio",
+                "Margem_media",
+                "Valor_de_Venda_min",
+                "Valor_de_Venda_max",
+            ]
+        ]
+        .rename(
+            columns={
+                "Ano_de_coleta": "Ano",
+                "Mes_de_coleta": "Mês",
+                "Estado_Sigla": "UF",
+                "Produto": "Produto",
+                "Valor_de_Venda_medio": "Venda Média (R$)",
+                "Valor_de_Compra_medio": "Compra Média (R$)",
+                "Margem_media": "Margem Média (R$)",
+                "Valor_de_Venda_min": "Venda Mínima (R$)",
+                "Valor_de_Venda_max": "Venda Máxima (R$)",
+            }
+        )
+        .style.format(
+            {
+                "Venda Média (R$)": "R$ {:.2f}",
+                "Compra Média (R$)": "R$ {:.2f}",
+                "Margem Média (R$)": "R$ {:.2f}",
+                "Venda Mínima (R$)": "R$ {:.2f}",
+                "Venda Máxima (R$)": "R$ {:.2f}",
+            },
+            na_rep="-",
+        ),
         use_container_width=True,
     )
 
