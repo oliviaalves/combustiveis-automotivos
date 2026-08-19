@@ -11,6 +11,7 @@ wheels/
 
 # data
 /data/
+.pytest_cache/
 
 # notebooks
 .ipynb_checkpoints/
