@@ -5,9 +5,6 @@ Utiliza dados da camada Gold (Delta Lake) agregados por UF/Mês e Município/Mê
 
 from __future__ import annotations
 
-import logging
-from typing import Literal
-
 import numpy as np
 import pandas as pd
 import plotly.express as px
