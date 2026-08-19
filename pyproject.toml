@@ -1,0 +1,26 @@
+[project]
+name = "combustiveis-automotivos"
+version = "0.1.0"
+description = "Pipeline de ETL para Série Histórica de Preços de Combustíveis da ANP usando Polars e Delta Lake"
+readme = "README.md"
+authors = [
+    { name = "Liv", email = "oliviahelenaalves@outlook.com.br" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "deltalake>=1.6.2",
+    "jupyter>=1.1.1",
+    "polars>=1.43.2",
+    "tqdm>=4.70.0",
+    "requests>=2.31.0",
+    "pytest>=8.0.0",
+    "streamlit>=1.61.1",
+    "plotly>=6.9.0",
+]
+
+[project.scripts]
+combustiveis-automotivos = "combustiveis_automotivos.main:main"
+
+[build-system]
+requires = ["uv_build>=0.12.3,<0.13.0"]
+build-backend = "uv_build"
