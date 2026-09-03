@@ -125,31 +125,39 @@ def generate_silver(anos: list[int] | None = None) -> None:
     """
     Gera a tabela silver de combustíveis automotivos a partir da tabela raw,
     com particionamento por Ano_de_coleta e suporte a filtro opcional por ano.
+    Usa scan_delta para otimização de memória e proteção de partições Delta Lake.
     """
+    from deltalake import DeltaTable
+
     try:
-        dataframe = pl.read_delta(str(DELTA_TARGET))
+        lazy_df = pl.scan_delta(str(DELTA_TARGET))
+        if anos is not None:
+            lazy_df = lazy_df.filter(
+                pl.col("Data da Coleta")
+                .cast(pl.Utf8)
+                .str.slice(-4)
+                .cast(pl.Int32, strict=False)
+                .is_in(anos)
+            )
+        dataframe = lazy_df.collect()
         inflacao_df = pl.read_json(str(INFLACAO_DF))
 
     except Exception:
         logger.exception("Erro ao ler o arquivo Delta da camada Raw")
-        raise 
-
-    if anos is not None:
-        # Extrai o ano da data (formato dd/mm/YYYY) e filtra
-        dataframe = dataframe.filter(
-            pl.col("Data da Coleta")
-            .cast(pl.Utf8)
-            .str.slice(-4)  # últimos 4 caracteres = ano
-            .cast(pl.Int32, strict=False)
-            .is_in(anos)
-        )
+        raise
 
     silver_df = transform_silver(dataframe, inflacao_df)
 
     SILVER_TARGET.parent.mkdir(parents=True, exist_ok=True)
+    delta_opts = {"schema_mode": "overwrite", "partition_by": ["Ano_de_coleta"]}
+
+    if anos is not None and DeltaTable.is_deltatable(str(SILVER_TARGET)):
+        anos_str = ", ".join(str(a) for a in anos)
+        delta_opts["predicate"] = f"Ano_de_coleta IN ({anos_str})"
+
     silver_df.write_delta(
         str(SILVER_TARGET),
         mode="overwrite",
-        delta_write_options={"schema_mode": "overwrite", "partition_by": ["Ano_de_coleta"]},
+        delta_write_options=delta_opts,
     )
     logger.info(f"Tabela Silver gerada com sucesso ({len(silver_df)} registros).")

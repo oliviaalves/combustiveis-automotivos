@@ -127,7 +127,7 @@ def test_transform_silver_filters_null_dates_and_invalid_prices():
     })
     silver = transform_silver(raw)
     assert len(silver) == 1
-    assert silver["CNPJ_da_Revenda"][0] == "11.111.111/0001-11"
+    assert silver["CNPJ_da_Revenda"][0] == "11111111000111"
 
 
 def test_transform_silver_without_inflation(mock_raw_df):
@@ -186,3 +186,41 @@ def test_aggregate_gold_municipio(mock_silver_df):
     # Valores de compra para SAO PAULO: 4.0 e 4.5 -> média 4.25
     assert pytest.approx(sp_mcp["Valor_de_Compra_medio"][0], 0.001) == 4.25
     assert pytest.approx(sp_mcp["Margem_media"][0], 0.001) == 1.25
+
+
+def test_build_gold_layer_with_partition_preservation(mock_silver_df, tmp_path):
+    """Testa a geração da camada Gold e a preservação de partições antigas ao rodar com filtro de anos."""
+    from combustiveis_automotivos.gold_transformations import build_gold_layer
+
+    source_dir = tmp_path / "silver"
+    target_dir = tmp_path / "gold"
+
+    # Cria tabela silver inicial com anos 2023 e 2024
+    df_2024 = mock_silver_df.with_columns(
+        Ano_de_coleta=pl.lit(2024, dtype=mock_silver_df["Ano_de_coleta"].dtype),
+        Valor_de_Venda_ajustado=pl.lit(10.0),
+        Valor_de_Compra_ajustado=pl.lit(8.0),
+    )
+    full_silver = pl.concat([mock_silver_df, df_2024])
+    full_silver.write_delta(
+        str(source_dir),
+        mode="overwrite",
+        delta_write_options={"partition_by": ["Ano_de_coleta"]},
+    )
+
+    grain = ["Estado_Sigla", "Produto", "Ano_de_coleta", "Mes_de_coleta"]
+
+    # 1. Primeira execução: gera para todos os anos
+    build_gold_layer(source_target=source_dir, output_target=target_dir, grain_cols=grain)
+    gold_res1 = pl.read_delta(str(target_dir))
+    assert set(gold_res1["Ano_de_coleta"].to_list()) == {2023, 2024}
+
+    # 2. Segunda execução seletiva apenas para 2024: deve sobrescrever 2024 mas preservar 2023
+    build_gold_layer(
+        source_target=source_dir,
+        output_target=target_dir,
+        grain_cols=grain,
+        anos=[2024],
+    )
+    gold_res2 = pl.read_delta(str(target_dir))
+    assert set(gold_res2["Ano_de_coleta"].to_list()) == {2023, 2024}

@@ -2,7 +2,13 @@
 Módulo de transformações e agregações da camada Gold.
 """
 
+import logging
+from pathlib import Path
+
 import polars as pl
+from deltalake import DeltaTable
+
+logger = logging.getLogger(__name__)
 
 
 def aggregate_gold(dataframe: pl.DataFrame, grain_cols: list[str]) -> pl.DataFrame:
@@ -32,3 +38,46 @@ def aggregate_gold(dataframe: pl.DataFrame, grain_cols: list[str]) -> pl.DataFra
     return agg_df.with_columns(
         Margem_media=pl.col("Valor_de_Venda_medio") - pl.col("Valor_de_Compra_medio"),
     )
+
+
+def build_gold_layer(
+    source_target: "Path",
+    output_target: "Path",
+    grain_cols: list[str],
+    anos: list[int] | None = None,
+    partition_cols: list[str] | None = None,
+) -> pl.DataFrame:
+    """
+    Função unificada para carregar dados da camada Silver, filtrar por anos com pushdown lazy,
+    agregar segundo o grão dimensional e gravar na camada Gold Delta Lake com particionamento seguro.
+    """
+    if partition_cols is None:
+        partition_cols = ["Ano_de_coleta"]
+
+    try:
+        lazy_df = pl.scan_delta(str(source_target))
+        if anos is not None:
+            lazy_df = lazy_df.filter(pl.col("Ano_de_coleta").is_in(anos))
+        dataframe = lazy_df.collect()
+    except Exception:
+        logger.exception(f"Erro ao ler os dados Delta de {source_target}")
+        raise
+
+    aggregated_df = aggregate_gold(dataframe, grain_cols=grain_cols)
+
+    output_target.parent.mkdir(parents=True, exist_ok=True)
+    delta_opts = {
+        "schema_mode": "overwrite",
+        "partition_by": partition_cols,
+    }
+
+    if anos is not None and DeltaTable.is_deltatable(str(output_target)):
+        anos_str = ", ".join(str(a) for a in anos)
+        delta_opts["predicate"] = f"Ano_de_coleta IN ({anos_str})"
+
+    aggregated_df.write_delta(
+        str(output_target),
+        mode="overwrite",
+        delta_write_options=delta_opts,
+    )
+    return aggregated_df

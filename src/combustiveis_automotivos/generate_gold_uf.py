@@ -1,9 +1,7 @@
 import logging
 
-import polars as pl
-
 from combustiveis_automotivos.config import SILVER_TARGET, UF_MES_GOLD_TARGET
-from combustiveis_automotivos.gold_transformations import aggregate_gold
+from combustiveis_automotivos.gold_transformations import build_gold_layer
 
 logger = logging.getLogger(__name__)
 
@@ -15,21 +13,10 @@ def ca_uf_mes_gold(anos: list[int] | None = None) -> None:
     Gera a tabela Gold de combustíveis automotivos por UF e mês, a partir da tabela Silver,
     particionada por Ano_de_coleta e com suporte a filtro opcional por ano.
     """
-    try:
-        dataframe = pl.read_delta(str(SILVER_TARGET))
-    except Exception:
-        logger.exception("Erro ao ler o arquivo Delta da camada Silver")
-        raise 
-
-    if anos is not None:
-        dataframe = dataframe.filter(pl.col("Ano_de_coleta").is_in(anos))
-
-    valor_por_uf_por_mes = aggregate_gold(dataframe, grain_cols=GRAIN_UF_MES)
-
-    UF_MES_GOLD_TARGET.parent.mkdir(parents=True, exist_ok=True)
-    valor_por_uf_por_mes.write_delta(
-        str(UF_MES_GOLD_TARGET),
-        mode="overwrite",
-        delta_write_options={"schema_mode": "overwrite", "partition_by": ["Ano_de_coleta"]},
+    agg_df = build_gold_layer(
+        source_target=SILVER_TARGET,
+        output_target=UF_MES_GOLD_TARGET,
+        grain_cols=GRAIN_UF_MES,
+        anos=anos,
     )
-    logger.info(f"Tabela Gold UF/Mês gerada com sucesso ({len(valor_por_uf_por_mes)} agregações).")
+    logger.info(f"Tabela Gold UF/Mês gerada com sucesso ({len(agg_df)} agregações).")

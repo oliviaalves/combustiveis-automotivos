@@ -2,13 +2,14 @@
 Configurações globais e caminhos do projeto combustiveis_automotivos.
 """
 
+import os
 from pathlib import Path
 
 # Diretórios base resolvidos dinamicamente a partir do diretório raiz do projeto
 BASE_DIR = Path(__file__).resolve().parents[2]
-DATA_DIR = BASE_DIR / "data"
-PROCESSED_DIR = DATA_DIR / "processed"
-OUTPUT_DIR = DATA_DIR / "output" / "delta"
+DATA_DIR = Path(os.getenv("COMBUSTIVEIS_DATA_DIR", str(BASE_DIR / "data")))
+PROCESSED_DIR = Path(os.getenv("COMBUSTIVEIS_PROCESSED_DIR", str(DATA_DIR / "processed")))
+OUTPUT_DIR = Path(os.getenv("COMBUSTIVEIS_OUTPUT_DIR", str(DATA_DIR / "output" / "delta")))
 
 # Alvos das tabelas Delta Lake (Camadas Bronze/Raw, Silver e Gold)
 DELTA_TARGET = OUTPUT_DIR / "combustiveis_automotivos_raw"
